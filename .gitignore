@@ -1,0 +1,22 @@
+# your .gitignore should look roughly like:
+
+# Node / Next build output
+/node_modules
+/.next
+/out
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env files
+.env.local
+.env.*.local
+
+# IDE settings
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
