@@ -1,32 +1,24 @@
-"use client";
-import React, { useState } from 'react';
-import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
-import LeaderboardTable, { Player } from './components/LeaderboardTable';
-import SearchIcon from '@mui/icons-material/Search';
-import LayersIcon from '@mui/icons-material/Layers';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import { lightTheme, darkTheme } from '../theme';
-
-const mockData: Player[] = [
-    { playerId: 1, name: 'Alice', country: 'US', rank: 1, money: 1500 },
-    { playerId: 2, name: 'Bob', country: 'UK', rank: 2, money: 1400 },
-    { playerId: 3, name: 'Chen', country: 'CN', rank: 3, money: 1300 },
-    { playerId: 4, name: 'Diego', country: 'BR', rank: 4, money: 1200 },
-    { playerId: 5, name: 'Eva', country: 'DE', rank: 5, money: 1100 },
-    { playerId: 6, name: 'Frank', country: 'US', rank: 6, money: 1000 }
-];
+"use client"
+import React, { useEffect, useState } from 'react'
+import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
+import LeaderboardTable, { Player } from './components/LeaderboardTable'
+import SearchIcon from '@mui/icons-material/Search'
+import LayersIcon from '@mui/icons-material/Layers'
+import LightModeIcon from '@mui/icons-material/LightMode'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
+import { lightTheme, darkTheme } from '../theme'
+import LeaderboardService from '../services/LeaderboardService'
 
 const GlobalStyle = createGlobalStyle`
-    body {
-        margin: 0;
-        background: ${({ theme }) => theme.colors.background};
-        color: ${({ theme }) => theme.colors.text};
-        transition: background 0.3s, color 0.3s;
-        font-family: 'Orbitron', sans-serif;
-        background-image: ${({ theme }) => `url(${theme.background_url})`};
-    }
-`;
+  body {
+    margin: 0;
+    background: ${({ theme }) => theme.colors.background};
+    color: ${({ theme }) => theme.colors.text};
+    transition: background 0.3s, color 0.3s;
+    font-family: 'Orbitron', sans-serif;
+    background-image: ${({ theme }) => `url(${theme.background_url})`};
+  }
+`
 
 const HeaderBar = styled.header`
     position: fixed;
@@ -37,11 +29,11 @@ const HeaderBar = styled.header`
     align-items: center;
     justify-content: center;
     z-index: 1000;
-`;
+`
 
 const Logo = styled.img`
     height: 70px;
-`;
+`
 
 const ThemeToggle = styled.button`
     position: absolute;
@@ -55,7 +47,7 @@ const ThemeToggle = styled.button`
     &:hover {
         color: #AAA;
     }
-`;
+`
 
 const PageWrapper = styled.div`
     margin-top: 4rem;
@@ -63,7 +55,7 @@ const PageWrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-`;
+`
 
 const Controls = styled.div`
     width: 100%;
@@ -71,12 +63,12 @@ const Controls = styled.div`
     display: flex;
     align-items: center;
     margin: 1rem 0;
-`;
+`
 
 const SearchWrapper = styled.div`
     position: relative;
     flex: 1;
-`;
+`
 
 const SearchIconWrapper = styled.div`
     position: absolute;
@@ -84,7 +76,7 @@ const SearchIconWrapper = styled.div`
     left: 0.75rem;
     transform: translateY(-50%);
     color: #AAA;
-`;
+`
 
 const SearchInput = styled.input`
     width: 100%;
@@ -97,7 +89,7 @@ const SearchInput = styled.input`
     &::placeholder {
         color: #AAA;
     }
-`;
+`
 
 const GroupButton = styled.button`
     background-color: ${({ theme }) => theme.colors.controlBg};
@@ -109,23 +101,38 @@ const GroupButton = styled.button`
     align-items: center;
     cursor: pointer;
     color: ${({ theme }) => theme.colors.text};
-`;
+`
 
 const Title = styled.h1`
     font-size: 2rem;
     margin: 1rem 0;
     color: ${({ theme }) => theme.colors.primary};
-`;
+`
 
 export default function Home() {
-    const [isDarkMode, setIsDarkMode] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [groupByCountry, setGroup] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [groupByCountry, setGroup] = useState(false)
+    const [players, setPlayers] = useState<Player[]>([])
 
-    const filtered = mockData.filter(p =>
+    useEffect(() => {
+        async function fetchPlayers() {
+            try {
+                const data = await LeaderboardService.getTopPlayers()
+                const withRanks = data.map((p, i) => ({ ...p, rank: i + 1 }))
+                setPlayers(withRanks)
+            } catch (err) {
+                console.error('Failed to fetch leaderboard:', err)
+            }
+        }
+
+        fetchPlayers()
+    }, [])
+
+    const filtered = players.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.country.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    )
 
     return (
         <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
@@ -164,5 +171,5 @@ export default function Home() {
                 />
             </PageWrapper>
         </ThemeProvider>
-    );
+    )
 }
