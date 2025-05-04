@@ -1,19 +1,24 @@
 "use client"
-import React, {useEffect, useRef, useState} from 'react'
+import React, {useEffect, useState, useMemo} from 'react'
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
 import LeaderboardTable, { Player } from './components/LeaderboardTable'
 import SearchIcon from '@mui/icons-material/Search'
 import LayersIcon from '@mui/icons-material/Layers'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
+import { Button, CircularProgress } from '@mui/material';
+import { Refresh } from '@mui/icons-material';
 import { lightTheme, darkTheme } from '../theme'
 import LeaderboardService from '../services/LeaderboardService'
 import { pusher } from '@/lib/broadcast'
+import debounce from 'lodash.debounce';
+
 
 // Extend Player to include optional justWon for UI highlighting
 interface PlayerWithPrize extends Player {
     justWon?: number
 }
+
 
 const GlobalStyle = createGlobalStyle`
     body {
@@ -34,17 +39,20 @@ const HeaderBar = styled.header`
     background-color: #28282C;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     z-index: 1000;
+    padding-right: 10px;
+    padding-left: 10px;
+    height: 70px;
 `
 
 const Logo = styled.img`
     height: 70px;
+    position: absolute;
+    left: 44%;
 `
 
 const ThemeToggle = styled.button`
-    position: absolute;
-    right: 2.5rem;
     color: #ECECEC;
     cursor: pointer;
     background-color: rgba(154, 152, 152, 0.24);
@@ -125,12 +133,42 @@ const Timer = styled.div`
 const Banner = styled.div`
   background: ${({ theme }) => theme.colors.headerBg};
   color: ${({ theme }) => theme.colors.text};
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 2rem;
   border-radius: 4px;
   margin-bottom: 1rem;
   font-weight: bold;
   text-align: center;
 `
+
+const FetchButton = styled(Button)`
+    background-color: #FF7F3F; /* Using one of your brand colors */
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 5px 15px;
+    margin-right: 10px;
+    border-radius: 20px;
+    font-size: 14px;
+    text-transform: none;
+    &:hover {
+        background-color: #E85920;
+    }
+`;
+
+const FetchIndicator = styled.div`
+    font-size: 12px;
+    color: #FFEDD6; /* Light color for secondary text */
+    margin-top: 5px;
+`;
+
+
+const RefreshWrapper = styled.div`
+   display: flex;
+    align-items: center;
+    width: max-content;
+    justify-content: space-between;
+    
+`;
 
 export default function Home() {
     const [isDarkMode, setIsDarkMode] = useState(true)
@@ -144,11 +182,56 @@ export default function Home() {
     const [message, setMessage] = useState('')
 
     const [showDistributedMessage, setShowDistributedMessage] = useState(false)
+    const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
+    const [isFetching, setIsFetching] = useState(false);// Tracks the last fetch time
+    const [timeAgo, setTimeAgo] = useState('');
 
+    const [inputValue, setInputValue] = useState('');
+    const debouncedSetSearch = useMemo(
+        () => debounce((val: string) => setSearchTerm(val), 500),
+        []
+    );
 
-    // Fetch leaderboard + pool + nextResetAt
+    useEffect(() => {
+        console.log('Last fetched at updated:', lastFetchedAt);
+    }, [lastFetchedAt]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputValue(e.target.value);
+        debouncedSetSearch(e.target.value);
+    };
+
+    useEffect(() => {
+        return () => {
+            debouncedSetSearch.cancel();
+        };
+    }, [debouncedSetSearch]);
+
+    useEffect(() => {
+        setTimeAgo('Last updated 0 secs ago')
+        const interval = setInterval(() => {
+            if (lastFetchedAt) {
+                const now = new Date();
+                const diffInSeconds = Math.floor((now - lastFetchedAt) / 1000);
+
+                const hours = Math.floor(diffInSeconds / 3600);
+                const minutes = Math.floor((diffInSeconds % 3600) / 60);
+                const seconds = diffInSeconds % 60;
+
+                setTimeAgo(
+                    `Last updated ${hours > 0 ? `${hours} hour${hours !== 1 ? 's' : ''}` : ''} ${
+                        minutes > 0 ? `${minutes} minute${minutes !== 1 ? 's' : ''}` : ''
+                    } ${seconds > 0 ? `${seconds} second${seconds !== 1 ? 's' : ''}` : ''} ago`
+                );
+            }
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [lastFetchedAt]);
+
     const fetchData = () => {
         console.log('FETCH DATAHA')
+        setIsFetching(true)
         LeaderboardService.getLeaderboard(searchTerm)
             .then(({ data, pool, nextResetAt }) => {
                 setPlayers(
@@ -156,12 +239,31 @@ export default function Home() {
                 )
                 setPool(pool)
                 setNextResetAt(new Date(nextResetAt))
+                setLastFetchedAt(new Date());
+                console.log(lastFetchedAt)
+                setIsFetching(false)
             })
             .catch(console.error)
     }
-
-    // Initial load & on searchTerm change
     useEffect(fetchData, [searchTerm])
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData(); // Fetch data every 5 minutes
+        }, 20 * 60000); // 60000 ms = 1 minute
+
+        return () => clearInterval(interval);
+    }, []);
+
+    /*
+    useEffect(() => {
+        console.log(secondsLeft, 'sec left')
+        if (secondsLeft === 1) {
+            fetchData();
+        }
+    }, [secondsLeft]);
+    */
+
 
     // Countdown effect using server timestamp
     useEffect(() => {
@@ -175,34 +277,10 @@ export default function Home() {
         return () => clearInterval(id)
     }, [nextResetAt])
 
-    /*
-    useEffect(() => {
-        if (!didInitialRun.current) {
-            // skip the first run
-            didInitialRun.current = true
-            return
-        }
-        if (pool === 0) {
-            // show the “distributed” banner
-            setShowDistributedMessage(true)
-            // hide banner after 5 seconds
-            const t = setTimeout(() => {
-                setShowDistributedMessage(false)
-                fetchData()
-            }, 10000)
-            return () => clearTimeout(t)
-        }
-    }, [pool])
-    */
-
-
-    // Refetch when countdown hits zero
-
-
-    // Real-time updates & prize events
     useEffect(() => {
         const channel = pusher.subscribe('private-leaderboard')
 
+        /*
         // score & pool updates
         channel.bind('update', (payload: { playerId: number; money: number; pool: number }) => {
             setPlayers(prev =>
@@ -213,7 +291,7 @@ export default function Home() {
                 )
             )
             setPool(payload.pool)
-        })
+        })*/
 
         channel.bind('prize', (payload: {
             playerId: number;
@@ -223,14 +301,10 @@ export default function Home() {
             isLast: boolean;
         }) => {
             const CHUNK = 100;
-
-            // 1) INITIAL BANNER
             if (payload.isFirst) {
                 setMessage('Distributing prizes…');
                 setShowDistributedMessage(true);
             }
-
-            // 2) UPDATE POOL & HIGHLIGHT WINNER
             setPool(payload.pool);
             setPlayers(prev =>
                 prev.map(p =>
@@ -239,8 +313,6 @@ export default function Home() {
                         : p
                 )
             );
-
-            // 3) SMOOTHLY ADD COINS
             let remaining = payload.award;
             const iv = setInterval(() => {
                 if (remaining <= 0) {
@@ -266,7 +338,7 @@ export default function Home() {
 
                             setShowDistributedMessage(false);
                             fetchData();
-                        }, 5000);
+                        }, 4000);
                     }
                     return;
                 }
@@ -274,7 +346,6 @@ export default function Home() {
                 // compute how much to award this tick (never more than what's left)
                 const awardThisTick = Math.min(remaining, CHUNK);
 
-                // award it
                 setPlayers(prev =>
                     prev.map(p =>
                         p.playerId === payload.playerId
@@ -293,6 +364,12 @@ export default function Home() {
         }
     }, [])
 
+    const handleFetchNow = () => {
+        fetchData(); // Trigger manual data fetch
+    };
+
+
+
     const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
     const seconds = String(secondsLeft % 60).padStart(2, '0')
 
@@ -301,11 +378,23 @@ export default function Home() {
             <GlobalStyle />
 
             <HeaderBar>
+                <RefreshWrapper>
+                    <FetchButton onClick={handleFetchNow} startIcon={isFetching ? <CircularProgress size={20} color="inherit" /> : <Refresh />}>
+                        Refresh
+                    </FetchButton>
+
+                    {lastFetchedAt && (
+                        <FetchIndicator>
+                           {timeAgo}
+                        </FetchIndicator>
+                    )}
+                </RefreshWrapper>
                 <Logo src="https://www.panteon.games/wp-content/uploads/2021/05/news03.png" alt="Logo" />
                 <ThemeToggle onClick={() => setIsDarkMode(dm => !dm)}>
                     {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
                 </ThemeToggle>
             </HeaderBar>
+
 
             <PageWrapper>
                 <Title>Leaderboard</Title>
@@ -321,17 +410,17 @@ export default function Home() {
                 <Controls>
                     <SearchWrapper>
                         <SearchIconWrapper>
-                            <SearchIcon fontSize="small" />
+                            <SearchIcon fontSize="small"/>
                         </SearchIconWrapper>
                         <SearchInput
                             type="text"
                             placeholder="Search by name, country, or ID…"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
+                            value={inputValue}
+                            onChange={handleInputChange}
                         />
                     </SearchWrapper>
                     <GroupButton onClick={() => setGroup(g => !g)}>
-                        <LayersIcon />
+                        <LayersIcon/>
                     </GroupButton>
                 </Controls>
 

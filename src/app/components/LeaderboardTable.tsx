@@ -36,6 +36,8 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-height: 100vh;
+    overflow: scroll;
 `;
 
 const CountryWrapper = styled.div`
@@ -106,7 +108,7 @@ const RowContainer = styled.div<{ highlight?: boolean }>`
             highlight ? 'rgba(241,203,92,0.81)' : theme.colors.tableRowBg};
     ${({ highlight }) =>
             highlight && `animation:  3s ease-out;`}
-
+    
   &:hover {
     background-color: ${({ theme }) => theme.colors.tableRowHoverBg};
     color:            ${({ theme }) => theme.colors.tableRowHoverText};
