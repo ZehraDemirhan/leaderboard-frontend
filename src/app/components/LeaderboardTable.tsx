@@ -87,7 +87,7 @@ const CountryHeader = styled.div`
   width: 100%;
 `;
 
-const RowContainer = styled.div`
+const RowContainer = styled.div<{ highlight?: boolean }>`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: center;
@@ -101,6 +101,11 @@ const RowContainer = styled.div`
   );
   font-size: 0.95rem;
   width: 95%;
+    transition: background-color 0.5s ease-out;
+    background-color: ${({ highlight, theme }) =>
+            highlight ? 'rgba(241,203,92,0.81)' : theme.colors.tableRowBg};
+    ${({ highlight }) =>
+            highlight && `animation:  3s ease-out;`}
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.tableRowHoverBg};
@@ -195,7 +200,8 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                             )}
 
                             {sortedList.map((p, idx) => (
-                                <RowContainer key={p.playerId}>
+                                <RowContainer key={p.playerId}
+                                              highlight={p.justWon !== undefined}      >
                                     {columns.map(col => {
                                         if (col === 'country' && groupByCountry) {
                                             return (

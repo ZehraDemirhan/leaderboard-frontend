@@ -10,10 +10,16 @@ class LeaderboardService extends BaseService {
     /**
      * Fetches the top leaderboard players
      */
-    public async getTopPlayers(): Promise<Player[]> {
-        const res: AxiosResponse<{ data: Player[] }> = await this.index()
-        return res.data.data
+    public async getLeaderboard(searchTerm: string): Promise<LeaderboardResponse> {
+        const res: AxiosResponse<{ data: LeaderboardResponse }> = await this.index({searchTerm})
+        return res.data
     }
 }
 
 export default new LeaderboardService()
+
+export interface LeaderboardResponse {
+    data: Player[]
+    pool: number
+    nextResetAt: string
+}
