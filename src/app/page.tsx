@@ -1,5 +1,5 @@
 "use client"
-import React, {useEffect, useState, useMemo} from 'react'
+import React, {useEffect, useState, useMemo, useCallback} from 'react'
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
 import LeaderboardTable, { Player } from './components/LeaderboardTable'
 import SearchIcon from '@mui/icons-material/Search'
@@ -12,12 +12,6 @@ import { lightTheme, darkTheme } from '../theme'
 import LeaderboardService from '../services/LeaderboardService'
 import { pusher } from '@/lib/broadcast'
 import debounce from 'lodash.debounce';
-
-
-// Extend Player to include optional justWon for UI highlighting
-interface PlayerWithPrize extends Player {
-    justWon?: number
-}
 
 
 const GlobalStyle = createGlobalStyle`
@@ -174,7 +168,7 @@ export default function Home() {
     const [isDarkMode, setIsDarkMode] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [groupByCountry, setGroup] = useState(false)
-    const [players, setPlayers] = useState<PlayerWithPrize[]>([])
+    const [players, setPlayers] = useState<Player[]>([])
 
     const [pool, setPool]       = useState<number>(0)
     const [nextResetAt, setNextResetAt] = useState<Date | null>(null)
@@ -212,7 +206,7 @@ export default function Home() {
         const interval = setInterval(() => {
             if (lastFetchedAt) {
                 const now = new Date();
-                const diffInSeconds = Math.floor((now - lastFetchedAt) / 1000);
+                const diffInSeconds = Math.floor((now.getTime() - lastFetchedAt.getTime()) / 1000);
 
                 const hours = Math.floor(diffInSeconds / 3600);
                 const minutes = Math.floor((diffInSeconds % 3600) / 60);
@@ -229,23 +223,23 @@ export default function Home() {
         return () => clearInterval(interval);
     }, [lastFetchedAt]);
 
-    const fetchData = () => {
-        console.log('FETCH DATAHA')
+
+    const fetchData = useCallback(() => {
         setIsFetching(true)
         LeaderboardService.getLeaderboard(searchTerm)
             .then(({ data, pool, nextResetAt }) => {
-                setPlayers(
-                    data.map((p, i) => ({ ...p, rank: i + 1 }))
-                )
+                setPlayers(data.map((p, i) => ({ ...p, rank: i + 1 })))
                 setPool(pool)
                 setNextResetAt(new Date(nextResetAt))
-                setLastFetchedAt(new Date());
-                console.log(lastFetchedAt)
+                setLastFetchedAt(new Date())
                 setIsFetching(false)
             })
             .catch(console.error)
-    }
-    useEffect(fetchData, [searchTerm])
+    }, [searchTerm])
+
+    useEffect(() => {
+        fetchData()
+    }, [fetchData])
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -253,7 +247,7 @@ export default function Home() {
         }, 20 * 60000); // 60000 ms = 1 minute
 
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchData]);
 
     /*
     useEffect(() => {
@@ -300,7 +294,7 @@ export default function Home() {
             isFirst: boolean;
             isLast: boolean;
         }) => {
-            const CHUNK = 100;
+            const CHUNK = 100000;
             if (payload.isFirst) {
                 setMessage('Distributing prizes…');
                 setShowDistributedMessage(true);
@@ -362,7 +356,7 @@ export default function Home() {
             channel.unbind_all()
             pusher.unsubscribe('private-leaderboard')
         }
-    }, [])
+    }, [fetchData])
 
     const handleFetchNow = () => {
         fetchData(); // Trigger manual data fetch
@@ -389,7 +383,7 @@ export default function Home() {
                         </FetchIndicator>
                     )}
                 </RefreshWrapper>
-                <Logo src="https://www.panteon.games/wp-content/uploads/2021/05/news03.png" alt="Logo" />
+                <Logo src="" alt="Logo" />
                 <ThemeToggle onClick={() => setIsDarkMode(dm => !dm)}>
                     {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
                 </ThemeToggle>

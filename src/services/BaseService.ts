@@ -1,8 +1,7 @@
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 import axios from 'axios'
 
-// Optional: global axios config (baseURL, auth token, etc.)
-axios.defaults.baseURL = 'http://localhost:3333' // ⬅️ your AdonisJS server URL
+axios.defaults.baseURL = 'http://localhost:3333'
 // axios.defaults.headers.common['Authorization'] = 'Bearer YOUR_TOKEN' (optional)
 
 declare module 'axios' {
@@ -11,40 +10,42 @@ declare module 'axios' {
     }
 }
 
-/**
- * Abstract base class for API service logic
- */
-abstract class BaseService {
+abstract class BaseService<
+    TIndexParams = Record<string, unknown>,
+    TShowParams = Record<string, unknown>,
+    TPayload = unknown,
+    TResponse = AxiosResponse
+> {
     public resource: string
 
     protected constructor(resource: string) {
         this.resource = resource
     }
 
-    public index(params: any = {}, buildQuery = false): Promise<AxiosResponse> {
+    public index(params: TIndexParams = {} as TIndexParams, buildQuery = false): Promise<TResponse> {
         return axios.get(this.resource, {
             params,
             buildQuery,
         })
     }
 
-    public show(id: string | number, params: any = {}, buildQuery = false): Promise<AxiosResponse> {
+    public show(id: string | number, params: TShowParams = {} as TShowParams, buildQuery = false): Promise<TResponse> {
         return axios.get(`${this.resource}/${id}`, {
             params,
             buildQuery,
         })
     }
 
-    public store(payload: any, config: AxiosRequestConfig = {}): Promise<AxiosResponse> {
+    public store(payload: TPayload, config: AxiosRequestConfig = {}): Promise<TResponse> {
         return axios.post(this.resource, payload, config)
     }
 
     public update(
         id: string | number,
-        payload: any,
+        payload: TPayload,
         config: AxiosRequestConfig = {},
         likePut = false
-    ): Promise<AxiosResponse> {
+    ): Promise<TResponse> {
         return axios[likePut ? 'post' : 'put'](
             `${this.resource}/${id}${likePut ? '?_method=PUT' : ''}`,
             payload,
@@ -52,7 +53,7 @@ abstract class BaseService {
         )
     }
 
-    public destroy(id: string | number): Promise<AxiosResponse> {
+    public destroy(id: string | number): Promise<TResponse> {
         return axios.delete(`${this.resource}/${id}`)
     }
 }

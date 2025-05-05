@@ -15,6 +15,7 @@ export type Player = {
     country:  string;
     rank:     number;
     money:    number;
+    justWon: number | undefined;
 };
 
 interface LeaderboardTableProps {
@@ -125,14 +126,16 @@ const columnMeta = {
     rank:    { label: 'Ranking',     align: 'center' },
     name:    { label: 'Player Name', align: 'left'   },
     country: { label: 'Country',     align: 'left'   },
-    money:   { label: 'Money',       align: 'left'   }
-};
+    money:   { label: 'Money',       align: 'left'   },
+} as const
+
+type ColumnKey = keyof typeof columnMeta
 
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                                                                players,
                                                                groupByCountry = false
                                                            }) => {
-    const [columns, setColumns] = useState<keyof Player[]>([
+    const [columns, setColumns] = useState<ColumnKey[]>([
         'rank',
         'name',
         'country',
