@@ -2,7 +2,7 @@
 import React, {useEffect, useState, useMemo, useCallback} from 'react'
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
 import LeaderboardTable, { Player } from './components/LeaderboardTable'
-import SearchIcon from '@mui/icons-material/Search'
+import Autocomplete, { Player as AutoPlayer } from "@/app/components/PlayerAutocomplete";
 import LayersIcon from '@mui/icons-material/Layers'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
@@ -69,29 +69,6 @@ const Controls = styled.div`
     display: flex;
     align-items: center;
     margin: 1rem 0;
-`
-
-const SearchWrapper = styled.div`
-    position: relative;
-    flex: 1;
-`
-
-const SearchIconWrapper = styled.div`
-    position: absolute;
-    top: 50%;
-    left: 0.75rem;
-    transform: translateY(-50%);
-    color: #AAA;
-`
-
-const SearchInput = styled.input`
-    width: 100%;
-    padding: 0.5rem 0.75rem 0.5rem 2.5rem;
-    background-color: ${({ theme }) => theme.colors.inputBg};
-    border: none;
-    border-radius: 4px;
-    color: ${({ theme }) => theme.colors.text};
-    &::placeholder { color: #AAA; }
 `
 
 const PoolDisplay = styled.div`
@@ -190,10 +167,6 @@ export default function Home() {
         console.log('Last fetched at updated:', lastFetchedAt);
     }, [lastFetchedAt]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInputValue(e.target.value);
-        debouncedSetSearch(e.target.value);
-    };
 
     useEffect(() => {
         return () => {
@@ -228,7 +201,13 @@ export default function Home() {
         setIsFetching(true)
         LeaderboardService.getLeaderboard(searchTerm)
             .then(({ data, pool, nextResetAt }) => {
-                setPlayers(data.map((p, i) => ({ ...p, rank: i + 1 })))
+                setPlayers(
+                    data.map((p, i) => ({
+                        ...p,
+                        // if the API gave us a rank, use it; otherwise use the array index
+                        rank: p.rank ?? i + 1,
+                    }))
+                )
                 setPool(pool)
                 setNextResetAt(new Date(nextResetAt))
                 setLastFetchedAt(new Date())
@@ -236,6 +215,7 @@ export default function Home() {
             })
             .catch(console.error)
     }, [searchTerm])
+
 
     useEffect(() => {
         fetchData()
@@ -294,7 +274,7 @@ export default function Home() {
             isFirst: boolean;
             isLast: boolean;
         }) => {
-            const CHUNK = 100000;
+            const CHUNK = 200000;
             if (payload.isFirst) {
                 setMessage('Distributing prizes…');
                 setShowDistributedMessage(true);
@@ -363,6 +343,11 @@ export default function Home() {
     };
 
 
+    const handleSelect = (player: AutoPlayer) => {
+        // e.g. set both searchTerm & inputValue
+        setInputValue(player.name)
+        setSearchTerm(player.name)
+    }
 
     const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
     const seconds = String(secondsLeft % 60).padStart(2, '0')
@@ -383,12 +368,11 @@ export default function Home() {
                         </FetchIndicator>
                     )}
                 </RefreshWrapper>
-                <Logo src="" alt="Logo" />
+                <Logo src="https://www.panteon.games/wp-content/uploads/2021/05/news03.png" alt="Logo" />
                 <ThemeToggle onClick={() => setIsDarkMode(dm => !dm)}>
                     {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
                 </ThemeToggle>
             </HeaderBar>
-
 
             <PageWrapper>
                 <Title>Leaderboard</Title>
@@ -402,17 +386,15 @@ export default function Home() {
                 )}
 
                 <Controls>
-                    <SearchWrapper>
-                        <SearchIconWrapper>
-                            <SearchIcon fontSize="small"/>
-                        </SearchIconWrapper>
-                        <SearchInput
-                            type="text"
-                            placeholder="Search by name, country, or ID…"
-                            value={inputValue}
-                            onChange={handleInputChange}
-                        />
-                    </SearchWrapper>
+                    <Autocomplete
+                        value={inputValue}
+                        onChange={val => {
+                            setInputValue(val)
+                            debouncedSetSearch(val)
+                        }}
+                        onSelect={handleSelect}
+                        placeholder="Search by name, country, or ID…"
+                    />
                     <GroupButton onClick={() => setGroup(g => !g)}>
                         <LayersIcon/>
                     </GroupButton>

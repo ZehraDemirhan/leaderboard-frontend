@@ -1,90 +1,202 @@
-// components/PlayerAutocomplete.tsx
-/*
-'use client'
-
-import React, { useEffect, useState, useMemo } from 'react'
-import Autocomplete from '@mui/material/Autocomplete'
-import TextField from '@mui/material/TextField'
+"use client"
+import React, { useState, useEffect, useRef, useMemo } from "react"
+import styled from "styled-components"
+import debounce from "lodash.debounce"
+import LeaderboardService from "@/services/LeaderboardService"
+import SearchIcon from '@mui/icons-material/Search'
 import CircularProgress from '@mui/material/CircularProgress'
-import debounce from 'lodash.debounce'
-import LeaderboardService from "@/services/LeaderboardService";
 import {Player} from "@/app/components/LeaderboardTable";
 
-interface PlayerAutocompleteProps {
-    inputValue: string
-    onInputChange: (value: string) => void
+interface AutocompleteProps {
+    value: string
+    onChange: (newVal: string) => void
     onSelect: (player: Player) => void
     placeholder?: string
 }
 
-export default function PlayerAutocomplete({
-                                               inputValue,
-                                               onInputChange,
-                                               onSelect,
-                                               placeholder = 'Search player…',
-                                           }: PlayerAutocompleteProps) {
-    const [options, setOptions] = useState<Player[]>([])
-    const [loading, setLoading] = useState(false)
-    const service = useMemo(() => new LeaderboardService(), [])
+const Wrapper = styled.div`
+    position: relative;
+    width: 100%;
+`
 
+const SearchIconWrapper = styled.div`
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    transform: translateY(-50%);
+    color: #AAA;
+`
 
-    // Debounced fetcher using your service
+const Input = styled.input`
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+    background-color: ${({ theme }) => theme.colors.inputBg};
+    border: none;
+    border-radius: 4px;
+    color: ${({ theme }) => theme.colors.text};
+    &::placeholder { color: #AAA; }
+`
+
+const List = styled.ul`
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: ${({ theme }) => theme.colors.background};
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 1001;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+`
+
+const Item = styled.li<{ highlighted: boolean }>`
+    padding: 0.5rem;
+    cursor: pointer;
+    background: ${({ highlighted, theme }) =>
+            highlighted ? theme.colors.primary : theme.colors.background};
+    color: ${({ highlighted, theme }) =>
+            highlighted ? theme.colors.background : theme.colors.text};
+  
+`
+
+const LoadingItem = styled.li`
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #AAA;
+`
+
+export default function Autocomplete({
+                                         value,
+                                         onChange,
+                                         onSelect,
+                                         placeholder = "Search…",
+                                     }: AutocompleteProps) {
+    const [suggestions, setSuggestions] = useState<Player[]>([])
+    const [open, setOpen] = useState(false)
+    const [highlightedIndex, setHighlightedIndex] = useState(0)
+    const [isLoading, setIsLoading] = useState(false)
+    const wrapperRef = useRef<HTMLDivElement>(null)
+
+    // Debounced fetch for autocomplete
     const fetchSuggestions = useMemo(
-        () =>
-            debounce(async (q: string) => {
-                setLoading(true)
-                try {
-                    const list = await service.getAutoCompleteSuggestions(q)
-                    setOptions(list)
-                } catch {
-                    setOptions([])
-                } finally {
-                    setLoading(false)
-                }
-            }, 300),
-        [service]
+        () => debounce(async (val: string) => {
+            setIsLoading(true)
+            try {
+                const results: Player[] = await LeaderboardService.getAutoCompleteSuggestions(val)
+                setSuggestions(results)
+                setHighlightedIndex(0)
+            } catch {
+                setSuggestions([])
+            } finally {
+                setIsLoading(false)
+            }
+        }, 500),
+        []
     )
 
+    // Trigger fetch and manage dropdown visibility
     useEffect(() => {
-        if (inputValue.length >= 2) {
-            fetchSuggestions(inputValue)
-        } else {
-            setOptions([])
+        if (value.length < 2) {
+            setSuggestions([])
+            setOpen(false)
+            return
         }
-        return () => {
-            fetchSuggestions.cancel()
+        setOpen(true)
+        fetchSuggestions(value)
+    }, [value, fetchSuggestions])
+
+    // Cleanup debounce on unmount
+    useEffect(() => () => {
+        fetchSuggestions.cancel()
+    }, [fetchSuggestions])
+
+    // Close on outside click
+    useEffect(() => {
+        const onClick = (e: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+                setOpen(false)
+            }
         }
-    }, [inputValue, fetchSuggestions])
+        document.addEventListener("mousedown", onClick)
+        return () => document.removeEventListener("mousedown", onClick)
+    }, [])
+
+    const onKeyDown = (e: React.KeyboardEvent) => {
+        if (!open || isLoading) return
+        if (e.key === "ArrowDown") {
+            e.preventDefault()
+            setHighlightedIndex(i => Math.min(i + 1, suggestions.length - 1))
+        }
+        if (e.key === "ArrowUp") {
+            e.preventDefault()
+            setHighlightedIndex(i => Math.max(i - 1, 0))
+        }
+        if (e.key === "Enter") {
+            e.preventDefault()
+            const sel = suggestions[highlightedIndex]
+            if (sel) {
+                onSelect(sel)
+                setOpen(false)
+            }
+        }
+        if (e.key === "Escape") {
+            setOpen(false)
+        }
+    }
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value
+        onChange(val)
+        setOpen(val.length >= 2)
+    }
 
     return (
-        <Autocomplete
-            freeSolo
-            filterOptions={(x) => x}
-            options={options}
-            getOptionLabel={(opt) => opt.name}
-            loading={loading}
-            inputValue={inputValue}
-            onInputChange={(_, newVal) => onInputChange(newVal)}
-            onChange={(_, selected) => {
-                if (selected) onSelect(selected)
-            }}
-            noOptionsText="No players found"
-            renderInput={(params) => (
-                <TextField
-                    {...params}
-                    placeholder={placeholder}
-                    InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                            <>
-                                {loading ? <CircularProgress size={20} /> : null}
-                                {params.InputProps.endAdornment}
-                            </>
-                        ),
-                    }}
-                />
+        <Wrapper ref={wrapperRef}>
+            <SearchIconWrapper>
+                <SearchIcon fontSize="small" />
+            </SearchIconWrapper>
+            <Input
+                type="text"
+                placeholder={placeholder}
+                value={value}
+                onChange={handleInputChange}
+                onFocus={() => { if (value.length >= 2) setOpen(true) }}
+                onKeyDown={onKeyDown}
+            />
+            {open && (
+                <List>
+                    {isLoading ? (
+                        <LoadingItem>
+                            <CircularProgress size={20} color="inherit" />
+                            <span style={{ marginLeft: '0.5rem' }}>Fetching suggestions...</span>
+                        </LoadingItem>
+                    ) : (
+                        suggestions.length > 0 ? (
+                            suggestions.map((p, i) => (
+                                <Item
+                                    key={`autocomplete-item-${i}`}
+                                    highlighted={i === highlightedIndex}
+                                    onMouseEnter={() => setHighlightedIndex(i)}
+                                    onClick={() => {
+                                        onSelect(p)
+                                        setOpen(false)
+                                    }}
+                                >
+                                    {p.name} &mdash; <small>{p.country}</small>
+                                </Item>
+                            ))
+                        ) : (
+                            <LoadingItem>No suggestions found</LoadingItem>
+                        )
+                    )}
+                </List>
             )}
-        />
+        </Wrapper>
     )
 }
-*/
