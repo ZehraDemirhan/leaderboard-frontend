@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import {
     DragDropContext,
@@ -21,6 +21,7 @@ export type Player = {
 interface LeaderboardTableProps {
     players:         Player[];
     groupByCountry?: boolean;
+    highlightedId?: number | null;
 }
 
 interface CellProps {
@@ -37,7 +38,7 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-height: 100vh;
+    max-height: 55vh;
     overflow: scroll;
 `;
 
@@ -61,7 +62,7 @@ const HeaderRow = styled.div`
     background-color: ${({ theme }) => theme.colors.tableHeaderBg};
     color:            ${({ theme }) => theme.colors.tableHeaderText};
     padding: 0.75rem 1rem;
-    margin-top: 1rem;
+
 `;
 
 const HeaderCell = styled.div<{ isDragging?: boolean }>`
@@ -109,11 +110,14 @@ const RowContainer = styled.div<{ highlight?: boolean }>`
             highlight ? 'rgba(241,203,92,0.81)' : theme.colors.tableRowBg};
     ${({ highlight }) =>
             highlight && `animation:  3s ease-out;`}
-    
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.tableRowHoverBg};
-    color:            ${({ theme }) => theme.colors.tableRowHoverText};
-  }
+
+    ${({ highlight, theme }) =>
+            !highlight && `
+    &:hover {
+      background-color: ${theme.colors.tableRowHoverBg};
+      color: ${theme.colors.tableRowHoverText};
+    }
+  `}
 `;
 
 export const Cell = styled.div<CellProps>`
@@ -132,9 +136,24 @@ const columnMeta = {
 type ColumnKey = keyof typeof columnMeta
 
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
-                                                               players,
-                                                               groupByCountry = false
-                                                           }) => {
+       players,
+       groupByCountry = false,
+       highlightedId = null
+   }) => {
+
+    const rowRefs = useMemo(
+        () => players.map(() => React.createRef<HTMLDivElement>()),
+        [players.length]
+    );
+
+    useEffect(() => {
+        if (highlightedId == null) return;
+        const idx = players.findIndex(p => p.playerId === highlightedId);
+        if (idx >= 0 && rowRefs[idx].current) {
+            rowRefs[idx].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [highlightedId, players, rowRefs]);
+
     const [columns, setColumns] = useState<ColumnKey[]>([
         'rank',
         'name',
@@ -206,7 +225,8 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
 
                             {sortedList.map((p, idx) => (
                                 <RowContainer key={p.playerId}
-                                              highlight={p.justWon !== undefined}      >
+                                              ref={rowRefs[idx]}
+                                              highlight={p.justWon !== undefined || p.playerId === highlightedId}      >
                                     {columns.map(col => {
                                         if (col === 'country' && groupByCountry) {
                                             return (

@@ -24,7 +24,7 @@ const GlobalStyle = createGlobalStyle`
 `
 
 const PageWrapper = styled.div`
-    margin-top: 4rem;
+    margin-top: 2rem;
     padding: 2rem;
     display: flex;
     flex-direction: column;
@@ -97,6 +97,8 @@ export default function Home() {
     const [isFetching, setIsFetching] = useState(false);// Tracks the last fetch time
     const [timeAgo, setTimeAgo] = useState('');
 
+    const [highlightedId, setHighlightedId] = useState<number | null>(null);
+
     const [inputValue, setInputValue] = useState('');
     const debouncedSetSearch = useMemo(
         () => debounce((val: string) => setSearchTerm(val), 500),
@@ -138,23 +140,28 @@ export default function Home() {
 
 
     const fetchData = useCallback(() => {
-        setIsFetching(true)
+        setIsFetching(true);
         LeaderboardService.getLeaderboard(searchTerm)
             .then(({ data, pool, nextResetAt }) => {
-                setPlayers(
-                    data.map((p, i) => ({
-                        ...p,
-                        // if the API gave us a rank, use it; otherwise use the array index
-                        rank: p.rank ?? i + 1,
-                    }))
-                )
-                setPool(pool)
-                setNextResetAt(new Date(nextResetAt))
-                setLastFetchedAt(new Date())
-                setIsFetching(false)
+                // map in rank …
+                setPlayers(data.map((p, i) => ({ ...p, rank: p.rank ?? i + 1 })));
+                setPool(pool);
+                setNextResetAt(new Date(nextResetAt));
+                setLastFetchedAt(new Date());
+
+                // FIND exact match
+                const match = data.find(p => p.name.toLowerCase() === searchTerm.toLowerCase());
+                if (match) {
+                    setHighlightedId(match.playerId);
+                    // scroll will happen via ref effect (below)
+                } else {
+                    setHighlightedId(null);
+                }
+
+                setIsFetching(false);
             })
-            .catch(console.error)
-    }, [searchTerm])
+            .catch(console.error);
+    }, [searchTerm]);
 
 
     useEffect(() => {
@@ -214,6 +221,7 @@ export default function Home() {
             isFirst: boolean;
             isLast: boolean;
         }) => {
+            setHighlightedId(null)
             const CHUNK = 200000;
             if (payload.isFirst) {
                 setMessage('Distributing prizes…');
@@ -325,7 +333,7 @@ export default function Home() {
                             debouncedSetSearch(val)
                         }}
                         onSelect={handleSelect}
-                        placeholder="Search by name, country, or ID…"
+                        placeholder="Search by name…"
                     />
                     <GroupButton onClick={() => setGroup(g => !g)}>
                         <LayersIcon/>
@@ -335,6 +343,7 @@ export default function Home() {
                 <LeaderboardTable
                     players={players}
                     groupByCountry={groupByCountry}
+                    highlightedId={highlightedId}
                 />
             </PageWrapper>
         </ThemeProvider>
