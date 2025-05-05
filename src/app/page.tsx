@@ -2,12 +2,9 @@
 import React, {useEffect, useState, useMemo, useCallback} from 'react'
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
 import LeaderboardTable, { Player } from './components/LeaderboardTable'
-import Autocomplete, { Player as AutoPlayer } from "@/app/components/PlayerAutocomplete";
+import Autocomplete from "@/app/components/PlayerAutocomplete";
 import LayersIcon from '@mui/icons-material/Layers'
-import LightModeIcon from '@mui/icons-material/LightMode'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import { Button, CircularProgress } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import HeaderBar from "@/app/components/Headerbar";
 import { lightTheme, darkTheme } from '../theme'
 import LeaderboardService from '../services/LeaderboardService'
 import { pusher } from '@/lib/broadcast'
@@ -24,35 +21,6 @@ const GlobalStyle = createGlobalStyle`
         background-image: ${({ theme }) => `url(${theme.background_url})`};
         background-repeat: no-repeat;
     }
-`
-
-const HeaderBar = styled.header`
-    position: fixed;
-    top: 0;
-    width: 100%;
-    background-color: #28282C;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 1000;
-    padding-right: 10px;
-    padding-left: 10px;
-    height: 70px;
-`
-
-const Logo = styled.img`
-    height: 70px;
-    position: absolute;
-    left: 44%;
-`
-
-const ThemeToggle = styled.button`
-    color: #ECECEC;
-    cursor: pointer;
-    background-color: rgba(154, 152, 152, 0.24);
-    border-radius: 5px;
-    padding: 5px;
-    &:hover { color: #AAA; }
 `
 
 const PageWrapper = styled.div`
@@ -111,35 +79,7 @@ const Banner = styled.div`
   text-align: center;
 `
 
-const FetchButton = styled(Button)`
-    background-color: #FF7F3F; /* Using one of your brand colors */
-    color: white;
-    display: flex;
-    align-items: center;
-    padding: 5px 15px;
-    margin-right: 10px;
-    border-radius: 20px;
-    font-size: 14px;
-    text-transform: none;
-    &:hover {
-        background-color: #E85920;
-    }
-`;
 
-const FetchIndicator = styled.div`
-    font-size: 12px;
-    color: #FFEDD6; /* Light color for secondary text */
-    margin-top: 5px;
-`;
-
-
-const RefreshWrapper = styled.div`
-   display: flex;
-    align-items: center;
-    width: max-content;
-    justify-content: space-between;
-    
-`;
 
 export default function Home() {
     const [isDarkMode, setIsDarkMode] = useState(true)
@@ -343,7 +283,7 @@ export default function Home() {
     };
 
 
-    const handleSelect = (player: AutoPlayer) => {
+    const handleSelect = (player: Player) => {
         // e.g. set both searchTerm & inputValue
         setInputValue(player.name)
         setSearchTerm(player.name)
@@ -356,23 +296,15 @@ export default function Home() {
         <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
             <GlobalStyle />
 
-            <HeaderBar>
-                <RefreshWrapper>
-                    <FetchButton onClick={handleFetchNow} startIcon={isFetching ? <CircularProgress size={20} color="inherit" /> : <Refresh />}>
-                        Refresh
-                    </FetchButton>
-
-                    {lastFetchedAt && (
-                        <FetchIndicator>
-                           {timeAgo}
-                        </FetchIndicator>
-                    )}
-                </RefreshWrapper>
-                <Logo src="https://www.panteon.games/wp-content/uploads/2021/05/news03.png" alt="Logo" />
-                <ThemeToggle onClick={() => setIsDarkMode(dm => !dm)}>
-                    {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
-                </ThemeToggle>
-            </HeaderBar>
+            <HeaderBar
+                isFetching={isFetching}
+                timeAgo={timeAgo}
+                lastFetchedAt={lastFetchedAt}
+                onRefresh={handleFetchNow}
+                logoSrc="https://www.panteon.games/wp-content/uploads/2021/05/news03.png"
+                isDarkMode={isDarkMode}
+                onToggleTheme={() => setIsDarkMode(dm => !dm)}
+            />
 
             <PageWrapper>
                 <Title>Leaderboard</Title>
