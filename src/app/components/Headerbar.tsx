@@ -72,14 +72,14 @@ interface HeaderBarProps {
 }
 
 export default function HeaderBar({
-                                      isFetching,
-                                      timeAgo,
-                                      lastFetchedAt,
-                                      onRefresh,
-                                      logoSrc,
-                                      isDarkMode,
-                                      onToggleTheme,
-                                  }: HeaderBarProps) {
+          isFetching,
+          timeAgo,
+          lastFetchedAt,
+          onRefresh,
+          logoSrc,
+          isDarkMode,
+          onToggleTheme,
+      }: HeaderBarProps) {
     return (
         <HeaderContainer>
             <RefreshWrapper>
