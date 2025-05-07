@@ -167,8 +167,8 @@ export default function Home() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchData(); // Fetch data every 5 minutes
-        }, 20 * 60000); // 60000 ms = 1 minute
+            fetchData(); // Fetch data every minute
+        }, 1 * 60000);
 
         return () => clearInterval(interval);
     }, [fetchData]);
@@ -180,9 +180,6 @@ export default function Home() {
         }
     }, [secondsLeft]);
 
-
-
-    // Countdown effect using server timestamp
     useEffect(() => {
         if (!nextResetAt) return
         const tick = () => {
@@ -218,7 +215,7 @@ export default function Home() {
             isLast: boolean;
         }) => {
             setHighlightedId(null)
-            const CHUNK = 1000;
+            const CHUNK = 100;
             if (payload.isFirst) {
                 setMessage('Distributing prizes…');
                 setShowDistributedMessage(true);
