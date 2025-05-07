@@ -44,12 +44,19 @@ const FetchIndicator = styled.div`
   font-size: 12px;
   color: #FFEDD6;
   margin-top: 5px;
+    
+    @media (max-width: 600px) {
+        display: none;
+    }
 `
 
 const Logo = styled.img`
   height: 70px;
   position: absolute;
   left: 44%;
+    @media (max-width: 600px) {
+        left: 29%;
+    }
 `
 
 const ThemeToggle = styled.button`

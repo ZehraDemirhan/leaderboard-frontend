@@ -1,5 +1,5 @@
 "use client"
-import React, {useEffect, useState, useMemo, useCallback} from 'react'
+import React, {useEffect, useState, useMemo, useCallback, useRef} from 'react'
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
 import LeaderboardTable, { Player } from './components/LeaderboardTable'
 import Autocomplete from "@/app/components/PlayerAutocomplete";
@@ -19,7 +19,6 @@ const GlobalStyle = createGlobalStyle`
         transition: background 0.3s, color 0.3s;
         font-family: 'Orbitron', sans-serif;
         background-image: ${({ theme }) => `url(${theme.background_url})`};
-        background-repeat: no-repeat;
     }
 `
 
@@ -105,10 +104,7 @@ export default function Home() {
         []
     );
 
-    useEffect(() => {
-        console.log('Last fetched at updated:', lastFetchedAt);
-    }, [lastFetchedAt]);
-
+    const skipNextFetch = useRef(false)
 
     useEffect(() => {
         return () => {
@@ -143,6 +139,7 @@ export default function Home() {
         setIsFetching(true);
         LeaderboardService.getLeaderboard(searchTerm)
             .then(({ data, pool, nextResetAt }) => {
+                console.log('DATA', data)
                 // map in rank …
                 setPlayers(data.map((p, i) => ({ ...p, rank: p.rank ?? i + 1 })));
                 setPool(pool);
@@ -150,7 +147,7 @@ export default function Home() {
                 setLastFetchedAt(new Date());
 
                 // FIND exact match
-                const match = data.find(p => p.name.toLowerCase() === searchTerm.toLowerCase());
+                const match = data.find(p => p?.name?.toLowerCase() === searchTerm?.toLowerCase());
                 if (match) {
                     setHighlightedId(match.playerId);
                     // scroll will happen via ref effect (below)
@@ -176,14 +173,13 @@ export default function Home() {
         return () => clearInterval(interval);
     }, [fetchData]);
 
-    /*
+
     useEffect(() => {
-        console.log(secondsLeft, 'sec left')
         if (secondsLeft === 1) {
             fetchData();
         }
     }, [secondsLeft]);
-    */
+
 
 
     // Countdown effect using server timestamp
@@ -222,7 +218,7 @@ export default function Home() {
             isLast: boolean;
         }) => {
             setHighlightedId(null)
-            const CHUNK = 200000;
+            const CHUNK = 1000;
             if (payload.isFirst) {
                 setMessage('Distributing prizes…');
                 setShowDistributedMessage(true);

@@ -5,7 +5,7 @@ import debounce from "lodash.debounce"
 import LeaderboardService from "@/services/LeaderboardService"
 import SearchIcon from '@mui/icons-material/Search'
 import CircularProgress from '@mui/material/CircularProgress'
-import {Player} from "@/app/components/LeaderboardTable";
+import { Player } from "@/app/components/LeaderboardTable"
 
 interface AutocompleteProps {
     value: string
@@ -18,7 +18,6 @@ const Wrapper = styled.div`
     position: relative;
     width: 100%;
 `
-
 const SearchIconWrapper = styled.div`
     position: absolute;
     top: 50%;
@@ -26,7 +25,6 @@ const SearchIconWrapper = styled.div`
     transform: translateY(-50%);
     color: #AAA;
 `
-
 const Input = styled.input`
     width: 100%;
     padding: 0.5rem 0.75rem 0.5rem 2.5rem;
@@ -36,7 +34,6 @@ const Input = styled.input`
     color: ${({ theme }) => theme.colors.text};
     &::placeholder { color: #AAA; }
 `
-
 const List = styled.ul`
     position: absolute;
     top: calc(100% + 4px);
@@ -52,7 +49,6 @@ const List = styled.ul`
     padding: 0;
     list-style: none;
 `
-
 const Item = styled.li<{ highlighted: boolean }>`
     padding: 0.5rem;
     cursor: pointer;
@@ -60,9 +56,7 @@ const Item = styled.li<{ highlighted: boolean }>`
             highlighted ? theme.colors.primary : theme.colors.background};
     color: ${({ highlighted, theme }) =>
             highlighted ? theme.colors.background : theme.colors.text};
-  
 `
-
 const LoadingItem = styled.li`
     padding: 0.5rem;
     display: flex;
@@ -81,35 +75,39 @@ export default function Autocomplete({
     const [open, setOpen] = useState(false)
     const [highlightedIndex, setHighlightedIndex] = useState(0)
     const [isLoading, setIsLoading] = useState(false)
+    const [didSelect, setDidSelect] = useState(false)
     const wrapperRef = useRef<HTMLDivElement>(null)
 
     // Debounced fetch for autocomplete
     const fetchSuggestions = useMemo(
-        () => debounce(async (val: string) => {
-            setIsLoading(true)
-            try {
-                const results: Player[] = await LeaderboardService.getAutoCompleteSuggestions(val)
-                setSuggestions(results)
-                setHighlightedIndex(0)
-            } catch {
-                setSuggestions([])
-            } finally {
-                setIsLoading(false)
-            }
-        }, 500),
+        () =>
+            debounce(async (val: string) => {
+                setIsLoading(true)
+                try {
+                    const results: Player[] =
+                        await LeaderboardService.getAutoCompleteSuggestions(val)
+                    setSuggestions(results)
+                    setHighlightedIndex(0)
+                } catch {
+                    setSuggestions([])
+                } finally {
+                    setIsLoading(false)
+                }
+            }, 500),
         []
     )
 
-    // Trigger fetch and manage dropdown visibility
+    // Trigger fetch and manage dropdown visibility,
+    // but skip if we've just selected
     useEffect(() => {
-        if (value.length < 2) {
+        if (value.length < 2 || didSelect) {
             setSuggestions([])
             setOpen(false)
             return
         }
         setOpen(true)
         fetchSuggestions(value)
-    }, [value, fetchSuggestions])
+    }, [value, fetchSuggestions, didSelect])
 
     // Cleanup debounce on unmount
     useEffect(() => () => {
@@ -119,7 +117,10 @@ export default function Autocomplete({
     // Close on outside click
     useEffect(() => {
         const onClick = (e: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+            if (
+                wrapperRef.current &&
+                !wrapperRef.current.contains(e.target as Node)
+            ) {
                 setOpen(false)
             }
         }
@@ -142,6 +143,7 @@ export default function Autocomplete({
             const sel = suggestions[highlightedIndex]
             if (sel) {
                 onSelect(sel)
+                setDidSelect(true)
                 setOpen(false)
             }
         }
@@ -151,6 +153,7 @@ export default function Autocomplete({
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setDidSelect(false)          // reset after typing
         const val = e.target.value
         onChange(val)
         setOpen(val.length >= 2)
@@ -174,26 +177,27 @@ export default function Autocomplete({
                     {isLoading ? (
                         <LoadingItem>
                             <CircularProgress size={20} color="inherit" />
-                            <span style={{ marginLeft: '0.5rem' }}>Fetching suggestions...</span>
+                            <span style={{ marginLeft: '0.5rem' }}>
+                Fetching suggestions...
+              </span>
                         </LoadingItem>
+                    ) : suggestions.length > 0 ? (
+                        suggestions.map((p, i) => (
+                            <Item
+                                key={`autocomplete-item-${i}`}
+                                highlighted={i === highlightedIndex}
+                                onMouseEnter={() => setHighlightedIndex(i)}
+                                onClick={() => {
+                                    onSelect(p)
+                                    setDidSelect(true)    // tell us we’ve just selected
+                                    setOpen(false)
+                                }}
+                            >
+                                {p.name} &mdash; <small>{p.country}</small>
+                            </Item>
+                        ))
                     ) : (
-                        suggestions.length > 0 ? (
-                            suggestions.map((p, i) => (
-                                <Item
-                                    key={`autocomplete-item-${i}`}
-                                    highlighted={i === highlightedIndex}
-                                    onMouseEnter={() => setHighlightedIndex(i)}
-                                    onClick={() => {
-                                        onSelect(p)
-                                        setOpen(false)
-                                    }}
-                                >
-                                    {p.name} &mdash; <small>{p.country}</small>
-                                </Item>
-                            ))
-                        ) : (
-                            <LoadingItem>No suggestions found</LoadingItem>
-                        )
+                        <LoadingItem>No suggestions found</LoadingItem>
                     )}
                 </List>
             )}

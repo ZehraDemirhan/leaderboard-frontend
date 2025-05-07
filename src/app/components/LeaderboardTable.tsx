@@ -104,7 +104,7 @@ const RowContainer = styled.div<{ highlight?: boolean }>`
     95% 100%, 5% 100%, 0% 100%, 0% 55%
   );
   font-size: 0.95rem;
-  width: 95%;
+  width: 97%;
     transition: background-color 0.5s ease-out;
     background-color: ${({ highlight, theme }) =>
             highlight ? 'rgba(241,203,92,0.81)' : theme.colors.tableRowBg};
