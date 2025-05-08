@@ -67,13 +67,18 @@ const HeaderRow = styled.div`
 
 `;
 
-const HeaderCell = styled.div<{ isDragging?: boolean }>`
+const HeaderCell = styled.div<{ isDragging?: boolean, isMobile?: boolean}>`
     display: flex;
     align-items: center;
     cursor: grab;
     opacity: ${p => (p.isDragging ? 0.5 : 1)};
     font-size: 0.95rem;
     font-weight: bold;
+    ${p =>
+            p.isMobile &&
+            `
+    font-size: 0.65rem;
+  `}
 `;
 
 const CountryHeader = styled.div`
@@ -207,6 +212,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                                             {...dragProv.draggableProps}
                                             {...dragProv.dragHandleProps}
                                             isDragging={snap.isDragging}
+                                            isMobile={isMobile}
                                         >
                                             <DragIndicatorIcon
                                                 fontSize="small"
