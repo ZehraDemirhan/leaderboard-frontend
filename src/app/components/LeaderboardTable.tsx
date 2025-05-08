@@ -32,6 +32,8 @@ interface CellProps {
 const Container = styled.div`
     width: 100%;
     max-width: 800px;
+    max-height: 55vh;
+    overflow: scroll;
 `;
 
 const Wrapper = styled.div`
@@ -124,14 +126,16 @@ export const Cell = styled.div<CellProps>`
   text-align: ${({ align }) => align};
   color: ${({ isMoney, theme }) =>
     isMoney ? theme.colors.tableRowHoverText : theme.colors.text};
+    max-width: 15vw;
+    overflow: scroll;
 `;
 
 const columnMeta = {
-    rank:    { label: 'Ranking',     align: 'center' },
-    name:    { label: 'Player Name', align: 'left'   },
-    country: { label: 'Country',     align: 'left'   },
-    money:   { label: 'Money',       align: 'left'   },
-} as const
+    rank:    { label: 'Ranking',     mobileLabel: 'Rank',         align: 'center' },
+    name:    { label: 'Player Name', mobileLabel: 'Name',         align: 'left'   },
+    country: { label: 'Country',     mobileLabel: 'Country',      align: 'left'   },
+    money:   { label: 'Money',       mobileLabel: 'Money',        align: 'left'   },
+} as const;
 
 type ColumnKey = keyof typeof columnMeta
 
@@ -140,6 +144,25 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
        groupByCountry = false,
        highlightedId = null
    }) => {
+
+    const [columns, setColumns] = useState<ColumnKey[]>([
+        'rank',
+        'name',
+        'country',
+        'money'
+    ]);
+
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const mql = window.matchMedia('(max-width: 600px)');
+        const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+
+        setIsMobile(mql.matches);
+
+        mql.addEventListener('change', onChange);
+        return () => mql.removeEventListener('change', onChange);
+    }, []);
 
     const rowRefs = useMemo(
         () => players.map(() => React.createRef<HTMLDivElement>()),
@@ -153,13 +176,6 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
             rowRefs[idx].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, [highlightedId, players, rowRefs]);
-
-    const [columns, setColumns] = useState<ColumnKey[]>([
-        'rank',
-        'name',
-        'country',
-        'money'
-    ]);
 
     const onDragEnd = (result: DropResult) => {
         if (!result.destination) return;
@@ -196,7 +212,9 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                                                 fontSize="small"
                                                 style={{ marginRight: 4 }}
                                             />
-                                            {columnMeta[col].label}
+                                            {isMobile
+                                                ? columnMeta[col].mobileLabel
+                                                : columnMeta[col].label}
                                         </HeaderCell>
                                     )}
                                 </Draggable>

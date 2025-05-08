@@ -35,6 +35,7 @@ const FetchButton = styled(Button)`
   border-radius: 20px;
   font-size: 14px;
   text-transform: none;
+  z-index: 10;  
   &:hover {
     background-color: #E85920;
   }
