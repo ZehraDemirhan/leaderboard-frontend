@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
                 destination: `${process.env.NEXT_PUBLIC_API_URL}/api/v1/:path*`
             }
         ]
-    }
+    },
+    output: 'export',
 };
 
 export default nextConfig;
