@@ -165,8 +165,8 @@ export default function Home() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchData(); // Fetch data every minute
-        }, 1 * 60000);
+            fetchData(); // Fetch data every half minute
+        }, 0.5 * 60000);
 
         return () => clearInterval(interval);
     }, [fetchData]);
@@ -283,7 +283,6 @@ export default function Home() {
 
 
     const handleSelect = (player: Player) => {
-        // e.g. set both searchTerm & inputValue
         setInputValue(player.name)
         setSearchTerm(player.name)
     }
