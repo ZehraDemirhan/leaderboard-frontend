@@ -153,7 +153,7 @@ export default function Autocomplete({
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setDidSelect(false)          // reset after typing
+        setDidSelect(false) // reset after typing
         const val = e.target.value
         onChange(val)
         setOpen(val.length >= 2)
