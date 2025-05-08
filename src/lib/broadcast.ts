@@ -6,9 +6,8 @@ export const pusher = new Pusher(
         cluster:           process.env.NEXT_PUBLIC_PUSHER_CLUSTER || '',
         wsHost:            process.env.NEXT_PUBLIC_PUSHER_HOST,
         wsPort:            Number(process.env.NEXT_PUBLIC_PUSHER_PORT),
-            wssPort: Number(process.env.NEXT_PUBLIC_PUSHER_PORT),
-        forceTLS:          true,
-        enabledTransports: ['ws','wss'],
+        forceTLS:          false,
+        enabledTransports: ['ws'],
         disableStats:      true,
 
         // 👇 Add these two:
