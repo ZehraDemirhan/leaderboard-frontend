@@ -143,7 +143,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
 
     const rowRefs = useMemo(
         () => players.map(() => React.createRef<HTMLDivElement>()),
-        [players.length]
+        [players]
     );
 
     useEffect(() => {

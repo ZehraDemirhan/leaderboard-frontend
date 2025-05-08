@@ -1,5 +1,5 @@
 "use client"
-import React, {useEffect, useState, useMemo, useCallback, useRef} from 'react'
+import React, {useEffect, useState, useMemo, useCallback} from 'react'
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components'
 import LeaderboardTable, { Player } from './components/LeaderboardTable'
 import Autocomplete from "@/app/components/PlayerAutocomplete";
@@ -103,8 +103,6 @@ export default function Home() {
         () => debounce((val: string) => setSearchTerm(val), 500),
         []
     );
-
-    const skipNextFetch = useRef(false)
 
     useEffect(() => {
         return () => {
