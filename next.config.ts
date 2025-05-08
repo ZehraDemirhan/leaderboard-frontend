@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
     async rewrites() {
         return [
             {
-                source: '/leaderboard/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL}/leaderboard/:path*`
+                source: '/api/v1/:path*',                               // catch all under /api/v1
+                destination: `${process.env.NEXT_PUBLIC_API_URL}/api/v1/:path*`
             }
         ]
     }
