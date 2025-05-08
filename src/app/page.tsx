@@ -190,7 +190,7 @@ export default function Home() {
     }, [nextResetAt])
 
     useEffect(() => {
-        const channel = pusher.subscribe('private-leaderboard')
+        const channel = pusher.subscribe('leaderboard')
 
         /*
         // score & pool updates
