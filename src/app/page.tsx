@@ -165,7 +165,9 @@ export default function Home() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchData(); // Fetch data every half minute
+            if(secondsLeft > 5) {
+                fetchData(); // Fetch data every half minute
+            }
         }, 0.5 * 60000);
 
         return () => clearInterval(interval);
