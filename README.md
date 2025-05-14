@@ -43,6 +43,6 @@ This frontend works seamlessly with the backend to deliver a real-time, scalable
 
 ## Screenshots
 
-<img width="1301" alt="Screenshot 2025-05-05 at 16 54 14" src="https://github.com/user-attachments/assets/9929d7d0-a6cf-47dc-b51b-02ba1616482a" />
+<img width="1470" alt="Screenshot 2025-05-14 at 10 00 01" src="https://github.com/user-attachments/assets/666e1da0-c155-443c-aad5-9c8d159f513e" />
 <br/>
-<img width="1313" alt="Screenshot 2025-05-05 at 17 07 33" src="https://github.com/user-attachments/assets/b7a28562-67be-4b7d-b92a-7b0bd5a32f90" />
+<img width="1467" alt="Screenshot 2025-05-14 at 10 00 13" src="https://github.com/user-attachments/assets/4d703292-f8ec-4971-b5b2-03ec68069a07" />
